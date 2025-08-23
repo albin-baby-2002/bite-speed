@@ -1,5 +1,5 @@
-import { MessageSquareText } from 'lucide-react';
-import { useState, useCallback, type JSX, useRef } from 'react';
+import { MessageSquareText } from "lucide-react";
+import { useState, useCallback, type JSX, useRef } from "react";
 import {
   ReactFlow,
   applyNodeChanges,
@@ -8,10 +8,10 @@ import {
   Background,
   Controls,
   useReactFlow,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import NodeTypeItem from './components/node-type-item';
-import { useDrop } from 'react-dnd';
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import NodeTypeItem from "./components/node-type-item";
+import { useDrop } from "react-dnd";
 
 //---------------------------------------------------------------
 
@@ -27,15 +27,15 @@ export interface TNodeType {
 // constants
 
 const initialNodes = [
-  { id: 'n1', position: { x: 0, y: 0 }, data: { label: 'Node 1' } },
-  { id: 'n2', position: { x: 0, y: 100 }, data: { label: 'Node 2' } },
+  { id: "n1", position: { x: 0, y: 0 }, data: { label: "Node 1" } },
+  { id: "n2", position: { x: 0, y: 100 }, data: { label: "Node 2" } },
 ];
 
-const initialEdges = [{ id: 'n1-n2', source: 'n1', target: 'n2' }];
+const initialEdges = [{ id: "n1-n2", source: "n1", target: "n2" }];
 
 const NODES: TNodeType[] = [
   {
-    type: 'message',
+    type: "message",
     icon: <MessageSquareText />,
   },
 ];
@@ -50,56 +50,56 @@ function App() {
 
   const ref = useRef<HTMLDivElement>(null);
 
-  const {screenToFlowPosition} = useReactFlow()
+  const { screenToFlowPosition } = useReactFlow();
 
   // hook to handle the drop of the node type item
 
-const [{ isOver }, dropRef] = useDrop(() => ({
-  accept: 'NODE-TYPE',
-  drop: (item, monitor) => {
-    const offset = monitor.getClientOffset();
-    const bounds = ref.current?.getBoundingClientRect();
+  const [{ isOver }, dropRef] = useDrop(() => ({
+    accept: "NODE-TYPE",
+    drop: (item, monitor) => {
+      const offset = monitor.getClientOffset();
+      const bounds = ref.current?.getBoundingClientRect();
 
-    if (!offset || !bounds) return;
+      if (!offset || !bounds) return;
 
-    // translate from client coords → relative to flow div
-    const position = screenToFlowPosition({
-      x: offset.x - bounds.left,
-      y: offset.y - bounds.top,
-    });
+      // translate from client coords → relative to flow div
+      const position = screenToFlowPosition({
+        x: offset.x - bounds.left,
+        y: offset.y - bounds.top,
+      });
 
-    setNodes((prev) => [
-      ...prev,
-      {
-        id: `n${prev.length + 1}`,
-        position,
-        data: { label: 'New Node' },
-      },
-    ]);
-  },
-  collect: (monitor) => ({
-    isOver: !!monitor.isOver(),
-  }),
-}));
+      setNodes((prev) => [
+        ...prev,
+        {
+          id: `n${prev.length + 1}`,
+          position,
+          data: { label: "New Node" },
+        },
+      ]);
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+  }));
 
   const onNodesChange = useCallback(
     (changes) =>
       setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
-    []
+    [],
   );
   const onEdgesChange = useCallback(
     (changes) =>
       setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
-    []
+    [],
   );
   const onConnect = useCallback(
     (params) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
-    []
+    [],
   );
   dropRef(ref);
 
   return (
-    <div className=" grid grid-cols-[1fr_350px] h-screen max-h-screen overflow-hidden w-screen">
+    <div className="grid h-screen max-h-screen w-screen grid-cols-[1fr_350px_10px] overflow-hidden">
       {/* the chat bot flow  */}
       <div ref={ref}>
         <ReactFlow
@@ -116,12 +116,12 @@ const [{ isOver }, dropRef] = useDrop(() => ({
       </div>
 
       {/* panel */}
-      <div className=" bg-gray-200 h-full w-full overflow-hidden grid grid-rows-[1fr_55px]">
-        <div className=" h-full  overflow-hidden grid grid-rows-[45px_1fr]">
-          <div className=" p-2 text-lg font-bold text-center text-black/80  border-b border-black/40 ">
+      <div className="grid h-full w-full grid-rows-[1fr_65px] overflow-hidden border-r border-l border-black/40 bg-white">
+        <div className="grid h-full grid-rows-[45px_1fr] overflow-hidden">
+          <div className="border-b border-black/40 p-2 text-center text-lg font-bold text-black/80">
             <p>Chat-Bot Flow Panel</p>
           </div>
-          <div className=" grid gap-2 grid-cols-2 p-4 max-h-full overflow-y-auto">
+          <div className="grid max-h-full grid-cols-2 gap-2 overflow-y-auto p-4">
             {/* looping through available types of nodes */}
 
             {NODES.map((item, idx) => (
@@ -129,9 +129,11 @@ const [{ isOver }, dropRef] = useDrop(() => ({
             ))}
           </div>
         </div>
-        <button className=" bg-black/80 rounded-sm text-white h-10 m-2 font-bold cursor-pointer">
-          Save Changes
-        </button>
+        <div className="flex items-center justify-center border-t border-black/40 px-4">
+          <button className="h-10 w-full cursor-pointer rounded-sm bg-black/80 font-bold text-white">
+            Save Changes
+          </button>
+        </div>
       </div>
     </div>
   );
