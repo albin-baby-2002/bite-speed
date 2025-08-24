@@ -11,7 +11,7 @@ const TextMessageNode = (props: NodeProps) => {
 
   return (
     <div
-      className={`h-[70px] min-w-[220px] rounded-md border bg-white shadow-md ${
+      className={`min-h-[70px] max-w-[220px] min-w-[220px] rounded-md border bg-white shadow-md ${
         selected ? "border-blue-500" : "border-gray-300"
       }`}
     >

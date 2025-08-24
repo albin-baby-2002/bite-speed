@@ -1,5 +1,12 @@
 import { ArrowLeft, MessageSquareText } from "lucide-react";
-import { useState, useCallback, type JSX, useRef } from "react";
+import {
+  useState,
+  useCallback,
+  type JSX,
+  useRef,
+  useMemo,
+  useEffect,
+} from "react";
 import {
   ReactFlow,
   applyNodeChanges,
@@ -17,6 +24,7 @@ import "@xyflow/react/dist/style.css";
 import NodeTypeItem from "./components/node-type-item";
 import { useDrop } from "react-dnd";
 import TextMessageNode from "./components/text-message-node";
+import { toast } from "sonner";
 
 //---------------------------------------------------------------
 
@@ -45,6 +53,9 @@ interface TNodeData {
 
 //---------------------------------------------------------------
 
+const NODE_DATA_KEY = "CHAT_FLOW_NODES";
+const EDGE_DATA_KEY = "CHAT_FLOW_EDGES";
+
 const NODES: TNodeType[] = [
   {
     type: "text",
@@ -68,8 +79,28 @@ function App() {
   const [selectedNodes, setSelectedNodes] = useState<TNodeData[]>([]);
 
   const ref = useRef<HTMLDivElement>(null);
-
   const { screenToFlowPosition } = useReactFlow();
+
+  const { sources, targets } = useMemo(() => {
+    return edges.reduce<{ sources: string[]; targets: string[] }>(
+      (acc, curr) => {
+        return {
+          sources: Array.from(new Set([...acc.sources, curr.source])),
+          targets: Array.from(new Set([...acc.targets, curr.target])),
+        };
+      },
+      { sources: [], targets: [] },
+    );
+  }, [edges]);
+
+  // useEffect to get data from localstorge intially to set to local state
+
+  useEffect(() => {
+    const nodes = JSON.parse(localStorage.getItem(NODE_DATA_KEY) || "[]");
+    const edges = JSON.parse(localStorage.getItem(EDGE_DATA_KEY) || "[]");
+    setNodes(nodes as TNodeData[]);
+    setEdges(edges as TEdgeData[]);
+  }, []);
 
   // hook to handle the drop of the node type item
 
@@ -108,15 +139,25 @@ function App() {
     [],
   );
 
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange<TEdgeData>[]) =>
-      setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
-    [],
-  );
+  const onEdgesChange = useCallback((changes: EdgeChange<TEdgeData>[]) => {
+    setEdges((edgesSnapshot) => {
+      return applyEdgeChanges(changes, edgesSnapshot);
+    });
+  }, []);
 
   const onConnect = useCallback(
     (params: Connection) =>
-      setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
+      setEdges((edgesSnapshot) => {
+        const alreadyHasEdge = edgesSnapshot.some(
+          (e) => e.source === params.source,
+        );
+
+        if (alreadyHasEdge) {
+          toast.error("One source can connect to one node only");
+          return edgesSnapshot;
+        }
+        return addEdge(params, edgesSnapshot);
+      }),
     [],
   );
 
@@ -130,19 +171,40 @@ function App() {
     });
   };
 
-const unselectAll = () => {
-  setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
-  setEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
-};
+  const unselectAll = () => {
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+    setEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
+  };
 
-  const handleGoBack = () => unselectAll()
+  const handleGoBack = () => unselectAll();
+
+  const handleSave = () => {
+    const error = nodes.some((item) => {
+      return !sources.includes(item.id) && !targets.includes(item.id);
+    });
+
+    if (error) {
+      return toast.error("Cannot save flow", {
+        description: "Every node should have a connection",
+      });
+    }
+    localStorage.setItem(NODE_DATA_KEY, JSON.stringify(nodes));
+    localStorage.setItem(EDGE_DATA_KEY, JSON.stringify(edges));
+    toast.success("Successfully saved");
+  };
 
   dropRef(ref);
 
   return (
     <div className="grid h-screen max-h-screen w-screen grid-cols-[1fr_350px_10px] overflow-hidden">
       {/* the chat bot flow  */}
-      <div ref={ref}>
+      <div
+        ref={ref}
+        style={{
+          background: isOver ? "azure" : "",
+        }}
+        className="relative"
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -158,6 +220,12 @@ const unselectAll = () => {
           <Background />
           <Controls />
         </ReactFlow>
+        {/* added simple info for user to how to start with */}
+        {nodes.length === 0 && (
+          <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            Drag and drop a node from right panel to start building chat flow
+          </p>
+        )}
       </div>
 
       {/* panel */}
@@ -175,7 +243,7 @@ const unselectAll = () => {
                 <p className="mr-4 flex-1">Message</p>
               </div>
             ) : (
-              <p>Chat-Bot Flow Panel</p>
+              <p>Chat Panel</p>
             )}
           </div>
 
@@ -185,14 +253,17 @@ const unselectAll = () => {
             <div className="flex max-h-full flex-col gap-4 overflow-y-auto p-4">
               {selectedNodes.map((item) => {
                 return (
-                  <div key={item.id} className="flex flex-col capitalize font-medium gap-2">
+                  <div
+                    key={item.id}
+                    className="flex flex-col gap-2 font-medium capitalize"
+                  >
                     <p>{item.type}</p>
                     <textarea
                       onChange={(e) => {
                         handleNodeUpdate(e.target.value, item.id);
                       }}
                       defaultValue={item.data.message}
-                      className="w-full border rouded-sm border-black/60 p-2"
+                      className="rouded-sm w-full border border-black/60 p-2"
                     />
                   </div>
                 );
@@ -209,7 +280,10 @@ const unselectAll = () => {
           )}
         </div>
         <div className="flex items-center justify-center border-t border-black/40 px-4">
-          <button className="h-10 w-full cursor-pointer rounded-sm bg-black/80 font-bold text-white">
+          <button
+            onClick={handleSave}
+            className="h-10 w-full cursor-pointer rounded-sm bg-black/80 font-bold text-white"
+          >
             Save Changes
           </button>
         </div>
