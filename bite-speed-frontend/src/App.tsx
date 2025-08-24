@@ -11,16 +11,18 @@ import {
   type EdgeChange,
   type NodeChange,
   type Connection,
+  type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import NodeTypeItem from "./components/node-type-item";
 import { useDrop } from "react-dnd";
+import MessageNode from "./components/message-node";
 
 //---------------------------------------------------------------
 
 // types
 
-export type TTypeOfNodes = "message" | "audio";
+export type TTypeOfNodes = "message";
 
 export interface TNodeType {
   type: TTypeOfNodes;
@@ -42,17 +44,6 @@ interface TNodeData {
 
 //---------------------------------------------------------------
 
-// constants
-
-const initialNodes: TNodeData[] = [
-  {
-    id: "n1",
-    type: "message",
-    position: { x: 0, y: 0 },
-    data: { message: "Node 1" },
-  },
-];
-
 const NODES: TNodeType[] = [
   {
     type: "message",
@@ -60,13 +51,19 @@ const NODES: TNodeType[] = [
   },
 ];
 
+const nodeComponents: Record<TTypeOfNodes, (props: NodeProps) => JSX.Element> =
+  {
+    message: MessageNode,
+  };
+
 //---------------------------------------------------------------
 
 // main component
 
 function App() {
-  const [nodes, setNodes] = useState<TNodeData[]>(initialNodes);
+  const [nodes, setNodes] = useState<TNodeData[]>([]);
   const [edges, setEdges] = useState<TEdgeData[]>([]);
+  const [selectedNodes,setSelectedNodes] = useState([]);
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -74,7 +71,7 @@ function App() {
 
   // hook to handle the drop of the node type item
 
-  const [{isOver}, dropRef] = useDrop(() => ({
+  const [{ isOver }, dropRef] = useDrop(() => ({
     accept: "NODE-TYPE",
     drop: (item: TNodeType, monitor) => {
       const offset = monitor.getClientOffset();
@@ -114,7 +111,7 @@ function App() {
     [],
   );
   const onConnect = useCallback(
-    (params:Connection) =>
+    (params: Connection) =>
       setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
     [],
   );
@@ -128,10 +125,11 @@ function App() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          nodeTypes={nodeComponents}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          fitView
+          defaultViewport={{ x: 0, y: 0, zoom: 1.3 }}
         >
           <Background />
           <Controls />
@@ -139,6 +137,7 @@ function App() {
       </div>
 
       {/* panel */}
+      
       <div className="grid h-full w-full grid-rows-[1fr_65px] overflow-hidden border-r border-l border-black/40 bg-white">
         <div className="grid h-full grid-rows-[45px_1fr] overflow-hidden">
           <div className="border-b border-black/40 p-2 text-center text-lg font-bold text-black/80">
