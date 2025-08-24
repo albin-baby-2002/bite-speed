@@ -81,16 +81,8 @@ function App() {
   const ref = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
-  const { sources, targets } = useMemo(() => {
-    return edges.reduce<{ sources: string[]; targets: string[] }>(
-      (acc, curr) => {
-        return {
-          sources: Array.from(new Set([...acc.sources, curr.source])),
-          targets: Array.from(new Set([...acc.targets, curr.target])),
-        };
-      },
-      { sources: [], targets: [] },
-    );
+  const targets = useMemo(() => {
+    return Array.from(new Set(edges.map((item) => item.target)));
   }, [edges]);
 
   // useEffect to get data from localstorge intially to set to local state
@@ -179,13 +171,11 @@ function App() {
   const handleGoBack = () => unselectAll();
 
   const handleSave = () => {
-    const error = nodes.some((item) => {
-      return !sources.includes(item.id) && !targets.includes(item.id);
-    });
+    const error = nodes.length > 1 && nodes.length - targets.length > 1;
 
     if (error) {
       return toast.error("Cannot save flow", {
-        description: "Every node should have a connection",
+        description: "More than one node cannot have empty targets",
       });
     }
     localStorage.setItem(NODE_DATA_KEY, JSON.stringify(nodes));
