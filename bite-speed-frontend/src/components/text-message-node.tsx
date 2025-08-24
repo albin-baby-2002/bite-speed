@@ -6,7 +6,7 @@ import WhatsApp from "../assets/whatsapp";
 // but for that we need to create the nodes's state in redux
 // node props don't provide the function to update it
 
-const MessageNode = (props: NodeProps) => {
+const TextMessageNode = (props: NodeProps) => {
   const { data, selected } = props;
 
   return (
@@ -49,4 +49,4 @@ const MessageNode = (props: NodeProps) => {
   );
 };
 
-export default MessageNode;
+export default TextMessageNode;

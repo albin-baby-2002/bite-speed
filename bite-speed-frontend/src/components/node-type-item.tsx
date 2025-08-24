@@ -31,7 +31,7 @@ const NodeTypeItem = ({ node }: { node: TNodeType }) => {
       className="flex-col capitalize w-full h-20 cursor-grab gap-2 flex items-center justify-center border-2 rounded-sm border-black/40 font-bold text-black/70 "
     >
       {node.icon}
-      {node.type}
+      {node.label}
     </div>
   );
 };
