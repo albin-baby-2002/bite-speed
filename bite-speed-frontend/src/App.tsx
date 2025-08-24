@@ -8,6 +8,9 @@ import {
   Background,
   Controls,
   useReactFlow,
+  type EdgeChange,
+  type NodeChange,
+  type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import NodeTypeItem from "./components/node-type-item";
@@ -17,21 +20,38 @@ import { useDrop } from "react-dnd";
 
 // types
 
+export type TTypeOfNodes = "message" | "audio";
+
 export interface TNodeType {
-  type: string;
+  type: TTypeOfNodes;
   icon: JSX.Element;
+}
+
+interface TEdgeData {
+  id: string;
+  source: string;
+  target: string;
+}
+
+interface TNodeData {
+  id: string;
+  position: { x: number; y: number };
+  data: { message: string };
+  type: TTypeOfNodes;
 }
 
 //---------------------------------------------------------------
 
 // constants
 
-const initialNodes = [
-  { id: "n1", position: { x: 0, y: 0 }, data: { label: "Node 1" } },
-  { id: "n2", position: { x: 0, y: 100 }, data: { label: "Node 2" } },
+const initialNodes: TNodeData[] = [
+  {
+    id: "n1",
+    type: "message",
+    position: { x: 0, y: 0 },
+    data: { message: "Node 1" },
+  },
 ];
-
-const initialEdges = [{ id: "n1-n2", source: "n1", target: "n2" }];
 
 const NODES: TNodeType[] = [
   {
@@ -45,8 +65,8 @@ const NODES: TNodeType[] = [
 // main component
 
 function App() {
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+  const [nodes, setNodes] = useState<TNodeData[]>(initialNodes);
+  const [edges, setEdges] = useState<TEdgeData[]>([]);
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -54,9 +74,9 @@ function App() {
 
   // hook to handle the drop of the node type item
 
-  const [{ isOver }, dropRef] = useDrop(() => ({
+  const [{isOver}, dropRef] = useDrop(() => ({
     accept: "NODE-TYPE",
-    drop: (item, monitor) => {
+    drop: (item: TNodeType, monitor) => {
       const offset = monitor.getClientOffset();
       const bounds = ref.current?.getBoundingClientRect();
 
@@ -73,7 +93,8 @@ function App() {
         {
           id: `n${prev.length + 1}`,
           position,
-          data: { label: "New Node" },
+          type: item.type,
+          data: { message: "New Node" },
         },
       ]);
     },
@@ -83,19 +104,21 @@ function App() {
   }));
 
   const onNodesChange = useCallback(
-    (changes) =>
+    (changes: NodeChange<TNodeData>[]) =>
       setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
     [],
   );
   const onEdgesChange = useCallback(
-    (changes) =>
+    (changes: EdgeChange<TEdgeData>[]) =>
       setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
     [],
   );
   const onConnect = useCallback(
-    (params) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
+    (params:Connection) =>
+      setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
     [],
   );
+
   dropRef(ref);
 
   return (
